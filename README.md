@@ -1,69 +1,65 @@
 # Vie2Eng: Dual Transformer Bidirectional Neural Machine Translation
 
 <p align="center">
-  <img src="static/logo.png" alt="Vie2Eng Logo" width="110" height="110">
+  <img src="static/logo.png" alt="Vie2Eng Logo" width="100" height="100">
 </p>
 
 <p align="center">
-  <b>Hệ thống Dịch thuật Song ngữ Anh ⇄ Việt hiệu năng cao với Mô hình Transformer Cục bộ & Giao diện Material Design 3</b>
+  <b>Hệ thống Dịch thuật Song ngữ Anh - Việt hiệu năng cao ứng dụng Mô hình Transformer Cục bộ và Giao diện Material Design 3</b>
 </p>
 
 <p align="center">
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
-  <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" alt="PyTorch"></a>
-  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.100%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"></a>
-  <a href="https://huggingface.co/"><img src="https://img.shields.io/badge/🤗%20Transformers-MarianMT-FFD21E?style=for-the-badge" alt="Hugging Face"></a>
-  <a href="https://github.com/HungHiHung10/Vie2Eng"><img src="https://img.shields.io/badge/License-MIT-blue.style=for-the-badge" alt="License MIT"></a>
-  <a href="https://github.com/HungHiHung10/Vie2Eng/stargazers"><img src="https://img.shields.io/github/stars/HungHiHung10/Vie2Eng?style=for-the-badge&color=gold" alt="GitHub Stars"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=flat-square&logo=pytorch&logoColor=white" alt="PyTorch"></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.100%2B-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI"></a>
+  <a href="https://huggingface.co/"><img src="https://img.shields.io/badge/Transformers-MarianMT-yellow?style=flat-square" alt="Hugging Face"></a>
+  <a href="https://github.com/HungHiHung10/Vie2Eng"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License MIT"></a>
+  <a href="https://github.com/HungHiHung10/Vie2Eng"><img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square" alt="Build Status"></a>
 </p>
 
 ---
 
-## 📑 Mục lục (Table of Contents)
+## Mục lục (Table of Contents)
 - [1. Giới thiệu tổng quan](#1-giới-thiệu-tổng-quan)
 - [2. Điểm nổi bật & Tính năng chính](#2-điểm-nổi-bật--tính-năng-chính)
 - [3. Kiến trúc Hệ thống & Luồng Dữ liệu](#3-kiến-trúc-hệ-thống--luồng-dữ-liệu)
-- [4. Thông số Kỹ thuật Mô hình (Model Specs)](#4-thông-số-kỹ-thuật-mô-hình-model-specs)
+- [4. Thông số Kỹ thuật Mô hình (Model Specifications)](#4-thông-số-kỹ-thuật-mô-hình-model-specifications)
 - [5. Thuật toán Giải mã (Decoding Strategies)](#5-thuật-toán-giải-mã-decoding-strategies)
-- [6. Bảng Phím tắt & Trải nghiệm Giao diện](#6-bảng-phím-tắt--trải-nghiệm-giao-diện)
-- [7. Benchmark & Hiệu năng Thực nghiệm](#7-benchmark--hiệu-năng-thực-nghiệm)
+- [6. Bảng Phím tắt & Trải nghiệm Người dùng](#6-bảng-phím-tắt--trải-nghiệm-người-dùng)
+- [7. Đánh giá Hiệu năng Thực nghiệm (Benchmarks)](#7-đánh-giá-hiệu-năng-thực-nghiệm-benchmarks)
 - [8. Hướng dẫn Cài đặt & Khởi chạy](#8-hướng-dẫn-cài-đặt--khởi-chạy)
-- [9. REST API Reference](#9-rest-api-reference)
-- [10. Cấu trúc Thư mục Codebase](#10-cấu-trúc-thư-mục-codebase)
+- [9. Đặc tả REST API (API Reference)](#9-đặc-tả-rest-api-api-reference)
+- [10. Cấu trúc Thư mục Dự án](#10-cấu-trúc-thư-mục-dự-án)
 - [11. Lộ trình Phát triển (Roadmap)](#11-lộ-trình-phát-triển-roadmap)
-- [12. Đóng góp & Tác giả](#12-đóng-góp--tác-giả)
+- [12. Thông tin Tác giả & Bản quyền](#12-thông-tin-tác-giả--bản-quyền)
 
 ---
 
 ## 1. Giới thiệu tổng quan
 
-**Vie2Eng** là nền tảng dịch máy nơ-ron song ngữ (Việt ➔ Anh & Anh ➔ Việt) được thiết kế theo tiêu chuẩn công nghiệp, hoạt động độc lập **100% Offline / On-premise**. 
+**Vie2Eng** là nền tảng dịch máy nơ-ron song ngữ (Việt ➔ Anh và Anh ➔ Việt) được xây dựng theo kiến trúc hướng dịch vụ, vận hành hoàn toàn độc lập (**100% Offline / On-premise**). 
 
-Dự án dung hợp sức mạnh của hai checkpoint mô hình Seq2Seq Transformer được huấn luyện chuyên biệt trên tập dữ liệu PhoMT quy mô lớn (`vienv2.pt` và `enviv4.pt`), cùng với framework backend FastAPI bất đồng bộ và giao diện web hiện đại mô phỏng chuẩn xác hệ thống Google Dịch (Material 3).
+Hệ thống tích hợp hai checkpoint mô hình Seq2Seq Transformer được huấn luyện chuyên biệt trên tập ngữ liệu PhoMT (`vienv2.pt` và `enviv4.pt`), kết hợp cùng tầng backend FastAPI bất đồng bộ và giao diện web chuẩn Material Design 3 mô phỏng trải nghiệm Google Dịch.
 
-```
-   ┌─────────────────────────────────────────────────────────────┐
-   │                     BẢO MẬT & TỐC ĐỘ                       │
-   │  • 100% Cục bộ: Không gửi văn bản qua API đám mây bên ngoài │
-   │  • Phản hồi RAM Cache: < 1ms cho các cụm từ phổ biến        │
-   │  • Thuật toán kép: Beam Search chất lượng cao & Greedy siêu tốc │
-   └─────────────────────────────────────────────────────────────┘
-```
+### Nguyên tắc Thiết kế Cốt lõi
+* **Bảo mật Dữ liệu Tuyệt đối:** Toàn bộ quá trình mã hóa ngữ cảnh và giải mã được thực thi cục bộ trên RAM/CPU nội bộ, không phát sinh bất kỳ yêu cầu truyền dữ liệu ra Internet.
+* **Tối ưu hóa Thời gian Thực:** Ứng dụng bộ đệm RAM Cache đa luồng cho các cụm từ phổ biến, giúp giảm độ trễ xuống dưới 1 mili-giây.
+* **Tính Linh hoạt Cao:** Cho phép người dùng chuyển đổi linh hoạt giữa thuật toán Beam Search (tối ưu hóa độ chính xác ngữ nghĩa) và Greedy Search (tối ưu hóa tốc độ xử lý).
 
 ---
 
 ## 2. Điểm nổi bật & Tính năng chính
 
-| Phân hệ | Tính năng | Mô tả chi tiết |
+| Hạng mục | Tính năng | Chi tiết kỹ thuật |
 | :--- | :--- | :--- |
-| **Mô hình AI** | **Dual Checkpoint Architecture** | Điều phối thông minh giữa `vienv2.pt` (Việt ➔ Anh) và `enviv4.pt` (Anh ➔ Việt). |
-| **Ngôn ngữ** | **Heuristic Auto-Detect** | Nhận diện tự động ngôn ngữ nguồn dựa trên dấu thanh tiếng Việt và từ điển tần suất không dấu. |
-| **Giải mã** | **N-gram Blocking & Length Penalty** | Tích hợp thuật toán chống lặp cụm 3 từ và phạt độ dài Google NMT $\left(\frac{5+L}{6}\right)^{0.6}$. |
-| **Độ ổn định** | **Step-0 EOS Constraint** | Khóa token kết thúc câu tại bước đầu tiên, triệt tiêu hoàn toàn lỗi dịch ra chuỗi rỗng đối với câu ngắn. |
-| **Văn bản dài**| **Smart Sentence Chunking** | Tự động băm nhỏ đoạn văn theo dấu ngắt câu (`[.!?]`), giữ nguyên cấu trúc và tránh tràn ngữ cảnh. |
-| **Giao diện** | **Material Design 3 & Dark Mode** | Trải nghiệm dịch mượt mà, hỗ trợ giao diện Sáng / Tối, đồng bộ tức thì với CSS variables. |
-| **Âm thanh** | **Web Speech API (STT & TTS)** | Nhận diện giọng nói tiếng Việt/Anh trực tiếp qua Mic và đọc phát âm bản dịch tự nhiên. |
-| **Tiện ích** | **Storage & Document Support** | Lưu trữ lịch sử, đánh dấu sao bản dịch vào `localStorage`, nhập liệu trực tiếp từ tệp `.txt`. |
+| **Kiến trúc AI** | **Dual Checkpoint Routing** | Cơ chế điều phối tự động giữa `vienv2.pt` (Việt ➔ Anh) và `enviv4.pt` (Anh ➔ Việt). |
+| **Tiền xử lý** | **Heuristic Language Detection** | Nhận diện tự động ngôn ngữ nguồn dựa trên phân tích tập ký tự có dấu thanh và đối sánh tần suất từ vựng không dấu. |
+| **Giải mã** | **N-gram Blocking & Length Penalty** | Tích hợp cơ chế cấm lặp cụm 3 từ liên tiếp và chuẩn hóa điểm số theo độ dài Google NMT $\left(\frac{5+L}{6}\right)^{0.6}$. |
+| **Độ ổn định** | **Step-0 EOS Constraint** | Chặn token kết thúc câu tại bước đầu tiên ($step = 0$), giải quyết triệt để lỗi sinh ra chuỗi rỗng đối với các câu giao tiếp ngắn. |
+| **Văn bản dài** | **Sentence Chunking** | Tự động băm nhỏ văn bản theo ranh giới câu (`[.!?]`), đảm bảo không vượt quá độ dài ngữ cảnh tối đa của mạng Transformer. |
+| **Giao diện Web** | **Material Design 3 & Dark Mode** | Thiết kế giao diện tương thích chuẩn Google Dịch, hỗ trợ chuyển đổi chủ đề Sáng / Tối thông qua biến số CSS. |
+| **Đa phương thức** | **Web Speech API (STT & TTS)** | Hỗ trợ nhận diện giọng nói tiếng Việt/Anh trực tiếp qua Microphone và bộ đọc phát âm tổng hợp văn bản. |
+| **Tiện ích** | **Storage & Document Support** | Quản lý lịch sử dịch, đánh dấu bản dịch yêu thích thông qua `localStorage`, hỗ trợ nạp văn bản từ tệp `.txt`. |
 
 ---
 
@@ -72,18 +68,18 @@ Dự án dung hợp sức mạnh của hai checkpoint mô hình Seq2Seq Transfor
 ```mermaid
 flowchart TD
     subgraph ClientLayer ["1. CLIENT PRESENTATION LAYER"]
-        UI["🖥️ Web Interface (Google Translate Material 3)"]
-        Debounce["⏱️ Debounce Timer (550ms)"]
-        Voice["🎙️ Speech-to-Text / File Reader"]
+        UI["Web Interface (Google Translate Material 3)"]
+        Debounce["Debounce Controller (550ms)"]
+        Voice["Speech Recognition / File Upload"]
         UI --> Debounce
         Voice --> UI
     end
 
     subgraph APILayer ["2. FASTAPI GATEWAY LAYER"]
-        API["⚡ POST /api/translate"]
-        Detect["🔍 detect_language() (Regex & Frequency)"]
-        Router["🔀 Model Selector (vi->en vs en->vi)"]
-        Cache["💾 In-Memory LRU Cache"]
+        API["POST /api/translate"]
+        Detect["Language Detector (Regex & Frequency)"]
+        Router["Model Dispatcher (vi->en vs en->vi)"]
+        Cache["In-Memory LRU Cache"]
         
         Debounce -->|JSON Payload| API
         API --> Detect
@@ -92,13 +88,13 @@ flowchart TD
     end
 
     subgraph EngineLayer ["3. PYTORCH INFERENCE ENGINE"]
-        Chunker["✂️ split_sentences() (Chunking)"]
-        Tok["🔤 MarianTokenizer (Helsinki-NLP/opus-mt-en-vi)"]
-        Enc["🧠 Transformer Encoder (Context Memory)"]
-        Dec{"⚙️ Decoding Strategy"}
-        Greedy["🚀 Greedy Search (Fast)"]
-        Beam["🎯 Beam Search (k=4, LP, Banned 3-grams)"]
-        Post["🧹 clean_translation() (Sanitization)"]
+        Chunker["Sentence Splitter"]
+        Tok["MarianTokenizer (Helsinki-NLP/opus-mt-en-vi)"]
+        Enc["Transformer Encoder (Context Memory)"]
+        Dec{"Decoding Strategy"}
+        Greedy["Greedy Search (Low Latency)"]
+        Beam["Beam Search (k=4, LP, Banned 3-grams)"]
+        Post["Post-processing (clean_translation)"]
 
         Cache -->|Cache Miss| Chunker
         Chunker --> Tok
@@ -117,9 +113,9 @@ flowchart TD
 
 ---
 
-## 4. Thông số Kỹ thuật Mô hình (Model Specs)
+## 4. Thông số Kỹ thuật Mô hình (Model Specifications)
 
-Kiến trúc mạng được định nghĩa trong lớp [`Seq2SeqTransformerOptimized`](server.py) theo mô hình Transformer Pre-LayerNorm:
+Kiến trúc mạng được định nghĩa trong lớp [`Seq2SeqTransformerOptimized`](server.py) theo mô hình Transformer Pre-LayerNorm (Norm-First):
 
 ```python
 # Cấu hình Mạng Nơ-ron Transformer Seq2Seq
@@ -134,52 +130,52 @@ norm_first          = True          # Pre-LN giúp ổn định gradient
 weight_tying        = True          # Chia sẻ trọng số giữa embedding và fc_out
 ```
 
-### Bộ Checkpoints Đi kèm:
-* **`vienv2.pt`**: Checkpoint tối ưu cho dịch thuật từ **Tiếng Việt sang Tiếng Anh**.
-* **`enviv4.pt`**: Checkpoint tối ưu cho dịch thuật từ **Tiếng Anh sang Tiếng Việt**.
-* **Tokenizer**: `Helsinki-NLP/opus-mt-en-vi` (SentencePiece Unigram subword segmentation).
+### Chi tiết Checkpoint
+* **`vienv2.pt`**: Checkpoint huấn luyện cho chiều dịch **Tiếng Việt ➔ Tiếng Anh**.
+* **`enviv4.pt`**: Checkpoint huấn luyện cho chiều dịch **Tiếng Anh ➔ Tiếng Việt**.
+* **Bộ Tokenizer**: `Helsinki-NLP/opus-mt-en-vi` (Kỹ thuật phân đoạn từ con SentencePiece Unigram).
 
 ---
 
 ## 5. Thuật toán Giải mã (Decoding Strategies)
 
-Hệ thống cho phép người dùng tùy biến thuật toán sinh từ tùy theo bài toán:
+Hệ thống hỗ trợ cấu hình linh hoạt hai thuật toán giải mã tự hồi quy:
 
-### 1. Beam Search ($k = 1 \dots 6$) - Tối ưu Chất lượng
-* **Duy trì đồng thời $k$ nhánh tiềm năng nhất** tại mỗi bước thời gian $t$.
-* **Cơ chế chống lặp $N$-gram (`no_repeat_ngram_size = 3`):** Cấm tuyệt đối việc lặp lại cụm 3 từ liên tiếp, triệt tiêu hiện tượng "nói lắp".
-* **Công thức Chuẩn hóa Phạt độ dài Google NMT:**
+### 1. Beam Search ($k = 1 \dots 6$) - Tối ưu Độ chính xác
+* Duy trì song song $k$ giả thuyết có xác suất tích lũy cao nhất tại mỗi bước thời gian $t$.
+* **Cơ chế chống lặp từ (`no_repeat_ngram_size = 3`):** Quét lịch sử sinh từ; cấm sinh token nếu nó tạo thành cụm 3 từ đã xuất hiện trước đó trong câu.
+* **Chuẩn hóa Độ dài theo Chuẩn Google NMT:**
   $$\text{Score}_{\text{norm}} = \frac{\sum_{t=1}^L \log P(y_t \mid y_{<t}, X)}{\left(\frac{5 + L}{6}\right)^{0.6}}$$
-* **Fallback an toàn:** Nếu Beam Search gặp phân phối suy thoái, hệ thống tự động fallback về Greedy Search để đảm bảo không bao giờ trả về chuỗi rỗng.
+* **Cơ chế Dự phòng (Fallback):** Trong trường hợp Beam Search không sinh ra token hợp lệ, hệ thống tự động fallback sang Greedy Search nhằm đảm bảo tính sẵn sàng của bản dịch.
 
-### 2. Greedy Search - Tối ưu Tốc độ
-* Lựa chọn trực tiếp token có xác suất cao nhất tại mỗi bước:
+### 2. Greedy Search - Tối ưu Độ trễ
+* Lựa chọn trực tiếp token có phân phối xác suất cực đại tại mỗi bước thời gian:
   $$y_t = \arg\max_{w} P(w \mid y_{<t}, X)$$
-* Tốc độ suy luận nhanh hơn xấp xỉ **$3.5\times$** so với Beam Search, phù hợp cho dịch phụ đề thời gian thực.
+* Tốc độ xử lý nhanh hơn khoảng **$3.5\times$** so với Beam Search, phù hợp với các tác vụ yêu cầu độ trễ thấp.
 
 ---
 
-## 6. Bảng Phím tắt & Trải nghiệm Giao diện
+## 6. Bảng Phím tắt & Trải nghiệm Người dùng
 
-| Phím tắt | Thao tác | Mô tả |
+| Tổ hợp phím | Thao tác | Chức năng |
 | :---: | :---: | :--- |
-| <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | **Dịch tức thì** | Gửi yêu cầu dịch ngay lập tức mà không cần chờ debounce. |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | **Hoán đổi ngôn ngữ** | Đảo chiều dịch (Việt ⇄ Anh) kèm hiệu ứng xoay icon mượt mà. |
-| <kbd>Escape</kbd> | **Xóa nhanh** | Xóa sạch nội dung ô nhập liệu và đưa con trỏ chuột về trạng thái chờ. |
+| <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | Dịch tức thì | Thực thi yêu cầu dịch ngay lập tức, bỏ qua thời gian chờ của bộ đếm debounce. |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Hoán đổi ngôn ngữ | Đảo chiều cặp ngôn ngữ (Việt ⇄ Anh) và đồng bộ lại văn bản giữa hai khung. |
+| <kbd>Escape</kbd> | Xóa nội dung | Xóa toàn bộ văn bản trong ô nguồn và trả con trỏ chuột về trạng thái nhập. |
 
 ---
 
-## 7. Benchmark & Hiệu năng Thực nghiệm
+## 7. Đánh giá Hiệu năng Thực nghiệm (Benchmarks)
 
-*Môi trường thử nghiệm: Intel Core i7 (8 Cores / 16 Threads), RAM 16GB, PyTorch CPU Inference.*
+*Cấu hình kiểm thử: Intel Core i7 (8 Cores / 16 Threads), RAM 16GB, Chế độ suy luận PyTorch CPU.*
 
-| Kịch bản Dịch thuật | Thuật toán | Độ dài câu nguồn | Thời gian xử lý trung bình | Tỷ lệ trúng Cache |
+| Kịch bản Kiểm thử | Thuật toán | Độ dài đầu vào | Độ trễ trung bình | Tỷ lệ trúng Cache |
 | :--- | :---: | :---: | :---: | :---: |
-| **Câu giao tiếp ngắn** (*"Xin chào"*) | Greedy | 2 từ | **~18 ms** | - |
-| **Câu giao tiếp ngắn** | Beam Search ($k=4$) | 2 từ | **~42 ms** | - |
-| **Đoạn văn trung bình** (~35 từ) | Greedy | 35 từ | **~85 ms** | - |
-| **Đoạn văn trung bình** | Beam Search ($k=4$) | 35 từ | **~240 ms** | - |
-| **Văn bản đã dịch trước đó** | Bất kỳ | Mọi độ dài | **< 0.8 ms** | **100%** |
+| Câu hội thoại ngắn (*"Xin chào"*) | Greedy | 2 từ | **~18 ms** | - |
+| Câu hội thoại ngắn | Beam Search ($k=4$) | 2 từ | **~42 ms** | - |
+| Đoạn văn trung bình (~35 từ) | Greedy | 35 từ | **~85 ms** | - |
+| Đoạn văn trung bình | Beam Search ($k=4$) | 35 từ | **~240 ms** | - |
+| Truy vấn trùng lặp (Cache Hit) | Bất kỳ | Mọi độ dài | **< 0.8 ms** | **100%** |
 
 ---
 
@@ -188,7 +184,7 @@ Hệ thống cho phép người dùng tùy biến thuật toán sinh từ tùy t
 ### Bước 1: Chuẩn bị Môi trường
 Khuyến nghị sử dụng Python phiên bản `3.10` hoặc `3.11`:
 ```bash
-# Clone repository
+# Clone mã nguồn
 git clone https://github.com/HungHiHung10/Vie2Eng.git
 cd Vie2Eng
 
@@ -196,29 +192,32 @@ cd Vie2Eng
 python -m venv venv
 
 # Kích hoạt môi trường ảo
-# Trên Windows:
+# Windows:
 .\venv\Scripts\activate
-# Trên Linux/macOS:
+# Linux / macOS:
 source venv/bin/activate
 ```
 
-### Bước 2: Cài đặt Gói Phụ thuộc
+### Bước 2: Cài đặt Thư viện Phụ thuộc
 ```bash
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 pip install transformers sentencepiece sacremoses fastapi uvicorn pydantic aiofiles
 ```
 
 ### Bước 3: Đặt Checkpoints Mô hình
-Đảm bảo bạn đã sao chép hai tệp checkpoint đã huấn luyện vào thư mục gốc của dự án:
+Sao chép hai tệp checkpoint đã huấn luyện vào thư mục gốc của dự án:
 ```
 Vie2Eng/
-├── vienv2.pt   # Checkpoint Vi -> En
-└── enviv4.pt   # Checkpoint En -> Vi
+├── vienv2.pt   # Trọng số mô hình Việt -> Anh
+└── enviv4.pt   # Trọng số mô hình Anh -> Việt
 ```
 
 ### Bước 4: Khởi động Ứng dụng
-Cách 1: Nhấp đúp vào file [`run_translator.bat`](run_translator.bat) (trên Windows).  
-Cách 2: Chạy lệnh từ terminal:
+Khởi chạy thông qua script batch trên Windows:
+```bash
+run_translator.bat
+```
+Hoặc thực thi trực tiếp qua terminal:
 ```bash
 python server.py
 ```
@@ -226,14 +225,12 @@ Sau đó mở trình duyệt và truy cập: **[http://localhost:8000](http://lo
 
 ---
 
-## 9. REST API Reference
+## 9. Đặc tả REST API (API Reference)
 
-Hệ thống cung cấp sẵn chuẩn RESTful API có thể tích hợp vào ứng dụng di động hoặc bên thứ ba.
-
-### Endpoint: Dịch văn bản
+### Endpoint: Dịch thuật
 `POST /api/translate`
 
-#### Request Body (JSON):
+#### Cấu trúc Request Body (JSON):
 ```json
 {
   "text": "Trí tuệ nhân tạo đang thay đổi cách con người làm việc.",
@@ -245,7 +242,7 @@ Hệ thống cung cấp sẵn chuẩn RESTful API có thể tích hợp vào ứ
 }
 ```
 
-#### Response Body (JSON):
+#### Cấu trúc Response Body (JSON):
 ```json
 {
   "translated_text": "Artificial intelligence is changing the way people work.",
@@ -259,14 +256,14 @@ Hệ thống cung cấp sẵn chuẩn RESTful API có thể tích hợp vào ứ
 }
 ```
 
-#### Ví dụ gọi API bằng cURL:
+#### Ví dụ Thực thi qua cURL:
 ```bash
 curl -X POST "http://localhost:8000/api/translate" \
      -H "Content-Type: application/json" \
      -d "{\"text\": \"Xin chào thế giới!\", \"method\": \"greedy\"}"
 ```
 
-### Endpoint: Kiểm tra Sức khỏe Hệ thống
+### Endpoint: Giám sát Trạng thái
 `GET /api/health`
 
 ```json
@@ -283,23 +280,23 @@ curl -X POST "http://localhost:8000/api/translate" \
 
 ---
 
-## 10. Cấu trúc Thư mục Codebase
+## 10. Cấu trúc Thư mục Dự án
 
 ```
 Vie2Eng/
-├── server.py                   # 🧠 FastAPI Backend, PyTorch Model & Decoding Engine
-├── CODEBASE_DOCUMENTATION.md   # 📘 Tài liệu phân tích kỹ thuật kiến trúc toàn diện
-├── README.md                   # 🌟 Tài liệu giới thiệu chính của Repository
-├── run_translator.bat          # ⚡ Script 1-click khởi chạy nhanh trên Windows
-├── .gitignore                  # 🛡️ Danh sách loại trừ file checkpoints & cache
+├── server.py                   # Backend FastAPI, định nghĩa mạng Transformer & thuật toán giải mã
+├── CODEBASE_DOCUMENTATION.md   # Tài liệu phân tích kiến trúc kỹ thuật toàn diện
+├── README.md                   # Tài liệu hướng dẫn chính của repository
+├── run_translator.bat          # Script tự động hóa khởi chạy trên Windows
+├── .gitignore                  # Cấu hình loại trừ checkpoints và cache nhị phân
 ├── templates/
-│   └── index.html              # 🎨 Layout giao diện người dùng (Google Translate M3)
+│   └── index.html              # Cấu trúc giao diện người dùng Material Design 3
 ├── static/
-│   ├── app.js                  # ⚙️ Logic Client: Event listeners, STT/TTS, Cache
-│   ├── style.css               # 💅 Thiết kế giao diện, Responsive & Dark Theme
-│   ├── logo.png                # 🖼️ Logo thương hiệu độ phân giải cao
-│   └── favicon.ico             # 🌐 Biểu tượng tab trình duyệt
-└── notebooks/                  # 🔬 Thư mục chứa Notebooks huấn luyện & thực nghiệm
+│   ├── app.js                  # Điều khiển phía Client: API, Audio STT/TTS, Cache
+│   ├── style.css               # Định kiểu giao diện, Responsive và Dark Theme
+│   ├── logo.png                # Tệp hình ảnh logo thương hiệu
+│   └── favicon.ico             # Biểu tượng tab trình duyệt
+└── notebooks/                  # Bộ notebooks nghiên cứu, huấn luyện và đánh giá mô hình
     ├── test-phomt-mariannmt.ipynb
     ├── train_phomt_mt.ipynb
     ├── train_phomt_mt (1).ipynb
@@ -310,28 +307,22 @@ Vie2Eng/
 
 ## 11. Lộ trình Phát triển (Roadmap)
 
-- [x] Triển khai mô hình Transformer Seq2Seq kép với Pre-LayerNorm.
-- [x] Tích hợp Beam Search chống lặp từ $N$-gram và Length Penalty.
-- [x] Xây dựng giao diện Google Translate Material 3 có Dark/Light Mode.
-- [x] Tích hợp Web Speech API (Đọc TTS và Thu âm STT).
-- [ ] **Export sang ONNX Runtime / TensorRT:** Tăng tốc độ suy luận gấp 3 - 4 lần trên CPU.
-- [ ] **Hiện thực cơ chế KV-Caching:** Tối ưu hóa độ phức tạp của Decoder từ $O(T^2)$ xuống $O(T)$.
-- [ ] **Hỗ trợ Dịch File Văn phòng:** Mở rộng upload tệp `.docx`, `.pdf` và `.srt`.
-- [ ] **Dockerization:** Đóng gói toàn bộ ứng dụng thành multi-stage Docker container.
+- [x] Triển khai kiến trúc Transformer Seq2Seq kép với cơ chế Pre-LayerNorm.
+- [x] Hiện thực thuật toán Beam Search chống lặp từ và chuẩn hóa độ dài Google NMT.
+- [x] Xây dựng giao diện web mô phỏng Google Translate với Material 3 và Dark Mode.
+- [x] Tích hợp bộ công cụ Web Speech API (nhận diện giọng nói và phát âm).
+- [ ] Chuyển đổi mô hình sang ONNX Runtime / TensorRT để tăng tốc độ suy luận trên CPU.
+- [ ] Hiện thực cơ chế KV-Caching cho Decoder nhằm tối ưu hóa độ phức tạp tính toán từ $O(T^2)$ xuống $O(T)$.
+- [ ] Mở rộng tính năng trích xuất và dịch tài liệu văn phòng định dạng `.docx` và `.pdf`.
+- [ ] Xây dựng Dockerfile chuẩn hóa hỗ trợ triển khai containerized.
 
 ---
 
-## 12. Đóng góp & Tác giả
+## 12. Thông tin Tác giả & Bản quyền
 
-Dự án được xây dựng và duy trì bởi:
 * **Tác giả:** [NGUYEN HUU KHANH HUNG](https://github.com/HungHiHung10)
-* **Email:** `nhkhanhhung2005@gmail.com`
-* **Mục đích:** Nghiên cứu khoa học, ứng dụng Xử lý Ngôn ngữ Tự nhiên (NLP) và Dịch máy Nơ-ron (NMT).
+* **Email liên hệ:** `nhkhanhhung2005@gmail.com`
+* **Mục tiêu nghiên cứu:** Xử lý Ngôn ngữ Tự nhiên (NLP) và Dịch máy Nơ-ron (NMT).
+* **Giấy phép:** [MIT License](LICENSE)
 
-Mọi đóng góp, báo lỗi (Issues) hoặc yêu cầu kéo (Pull Requests) đều được hoan nghênh nồng nhiệt! Nếu bạn thấy dự án hữu ích, hãy tặng một ⭐️ **Star** trên [GitHub](https://github.com/HungHiHung10/Vie2Eng)!
-
----
-
-<p align="center">
-  <i>Được xây dựng với niềm đam mê dành cho Trí tuệ Nhân tạo và Xử lý Ngôn ngữ Tự nhiên Tiếng Việt.</i>
-</p>
+Mọi đóng góp, báo cáo vấn đề hoặc đề xuất cải tiến đều được hoan nghênh thông qua hệ thống Pull Requests và Issues trên [GitHub Repository](https://github.com/HungHiHung10/Vie2Eng).
