@@ -37,13 +37,22 @@
 
 ## 1. Giới thiệu tổng quan
 
-**Vie2Eng** là nền tảng dịch máy nơ-ron song ngữ (Việt ➔ Anh và Anh ➔ Việt) được xây dựng theo kiến trúc hướng dịch vụ, vận hành hoàn toàn độc lập (**100% Offline / On-premise**). 
+**Vie2Eng** là nền tảng dịch máy nơ-ron song ngữ (Việt ➔ Anh và Anh ➔ Việt) được xây dựng theo kiến trúc hướng dịch vụ, hỗ trợ suy luận cục bộ (**Offline / On-premise**) sau khi tải model và tokenizer.
 
 Hệ thống tích hợp hai checkpoint mô hình Seq2Seq Transformer được huấn luyện chuyên biệt trên tập ngữ liệu PhoMT (`vienv2.pt` và `enviv4.pt`), kết hợp cùng tầng backend FastAPI bất đồng bộ và giao diện web chuẩn Material Design 3 mô phỏng trải nghiệm Google Dịch.
 
+Ứng dụng bổ sung hai model **MarianNMT CTranslate2 INT8**, được chọn mặc định:
+
+| Chiều dịch | Model | Tokenizer gốc |
+| :--- | :--- | :--- |
+| Việt → Anh | [MarianNMT-vi2en-ct2-int8](https://huggingface.co/HungNguyen29/MarianNMT-vi2en-ct2-int8) | `HungNguyen29/MarianNMT-PhoMT_vi2en` |
+| Anh → Việt | [MarianNMT-en2vi-ct2-int8](https://huggingface.co/HungNguyen29/MarianNMT-en2vi-ct2-int8) | `HungNguyen29/MarianNMT-PhoMT_en2vi` |
+
+Trong **Cài đặt → Mô hình dịch**, chọn `MarianNMT INT8 (mới)` hoặc `PhoMT Transformer (.pt)`. Ứng dụng tự chọn chiều dịch và ghi nhớ lựa chọn trên trình duyệt. Model chỉ được nạp vào RAM khi dùng lần đầu. CTranslate2 chạy trên CPU với `compute_type="int8"`; các checkpoint `.pt` vẫn dùng thiết bị PyTorch hiện có.
+
 ### Nguyên tắc Thiết kế Cốt lõi
 * **Bảo mật Dữ liệu Tuyệt đối:** Toàn bộ quá trình mã hóa ngữ cảnh và giải mã được thực thi cục bộ trên RAM/CPU nội bộ, không phát sinh bất kỳ yêu cầu truyền dữ liệu ra Internet.
-* **Tối ưu hóa Thời gian Thực:** Ứng dụng bộ đệm RAM Cache đa luồng cho các cụm từ phổ biến, giúp giảm độ trễ xuống dưới 1 mili-giây.
+* **Tối ưu hóa Truy vấn Lặp lại:** Bộ đệm LRU trong RAM tái sử dụng kết quả của cùng model, chiều dịch và cấu hình giải mã, giúp tránh chạy lại suy luận cho yêu cầu đã xử lý.
 * **Tính Linh hoạt Cao:** Cho phép người dùng chuyển đổi linh hoạt giữa thuật toán Beam Search (tối ưu hóa độ chính xác ngữ nghĩa) và Greedy Search (tối ưu hóa tốc độ xử lý).
 
 ---
@@ -67,55 +76,28 @@ Hệ thống tích hợp hai checkpoint mô hình Seq2Seq Transformer được h
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["1. CLIENT PRESENTATION LAYER"]
-        UI["Web Interface (Google Translate Material 3)"]
-        Debounce["Debounce Controller (550ms)"]
-        Voice["Speech Recognition / File Upload"]
-        UI --> Debounce
-        Voice --> UI
-    end
-
-    subgraph APILayer ["2. FASTAPI GATEWAY LAYER"]
-        API["POST /api/translate"]
-        Detect["Language Detector (Regex & Frequency)"]
-        Router["Model Dispatcher (vi->en vs en->vi)"]
-        Cache["In-Memory LRU Cache"]
-        
-        Debounce -->|JSON Payload| API
-        API --> Detect
-        Detect --> Router
-        Router --> Cache
-    end
-
-    subgraph EngineLayer ["3. PYTORCH INFERENCE ENGINE"]
-        Chunker["Sentence Splitter"]
-        Tok["MarianTokenizer (Helsinki-NLP/opus-mt-en-vi)"]
-        Enc["Transformer Encoder (Context Memory)"]
-        Dec{"Decoding Strategy"}
-        Greedy["Greedy Search (Low Latency)"]
-        Beam["Beam Search (k=4, LP, Banned 3-grams)"]
-        Post["Post-processing (clean_translation)"]
-
-        Cache -->|Cache Miss| Chunker
-        Chunker --> Tok
-        Tok --> Enc
-        Enc --> Dec
-        Dec -->|Method: greedy| Greedy
-        Dec -->|Method: beam| Beam
-        Greedy --> Post
-        Beam --> Post
-    end
-
-    Post -->|Update Cache| Cache
-    Cache -->|Cache Hit < 1ms| API
-    API -->|JSON Response| UI
+    UI[Browser ES modules] --> Client[Translation controller]
+    Client --> API[FastAPI endpoints]
+    API --> Service[TranslationService]
+    Service --> Detect[Language detection]
+    Service --> Cache[Bounded LRU cache]
+    Service --> CT2[MarianNMT INT8 backend]
+    Service --> Legacy[PhoMT PyTorch backend]
+    CT2 --> Tokens[Matching tokenizer per direction]
+    Legacy --> Transformer[Original Transformer and decoders]
+    CT2 --> Result[Resolved languages and translation]
+    Legacy --> Result
+    Cache --> Result
+    Result --> Client
+    Client --> Languages[Language selectors and speech]
+    Client --> Records[History and favorites]
 ```
 
 ---
 
 ## 4. Thông số Kỹ thuật Mô hình (Model Specifications)
 
-Kiến trúc mạng được định nghĩa trong lớp [`Seq2SeqTransformerOptimized`](server.py) theo mô hình Transformer Pre-LayerNorm (Norm-First):
+Kiến trúc checkpoint PyTorch được định nghĩa trong lớp [`Seq2SeqTransformerOptimized`](vie2eng/backends/transformer.py) theo mô hình Transformer Pre-LayerNorm (Norm-First):
 
 ```python
 # Cấu hình Mạng Nơ-ron Transformer Seq2Seq
@@ -151,7 +133,7 @@ Hệ thống hỗ trợ cấu hình linh hoạt hai thuật toán giải mã t�
 ### 2. Greedy Search - Tối ưu Độ trễ
 * Lựa chọn trực tiếp token có phân phối xác suất cực đại tại mỗi bước thời gian:
   $$y_t = \arg\max_{w} P(w \mid y_{<t}, X)$$
-* Tốc độ xử lý nhanh hơn khoảng **$3.5\times$** so với Beam Search, phù hợp với các tác vụ yêu cầu độ trễ thấp.
+* Trong các lần đo được trình bày ở mục 7, tổng thời gian của Beam Search (`beams=4`) bằng **2.14–6.27 lần** Greedy Search, tùy model và chiều dịch. Đây là tỷ lệ của các lần chạy benchmark được báo cáo; tốc độ thực tế còn phụ thuộc môi trường và cấu hình suy luận.
 
 ---
 
@@ -167,15 +149,119 @@ Hệ thống hỗ trợ cấu hình linh hoạt hai thuật toán giải mã t�
 
 ## 7. Đánh giá Hiệu năng Thực nghiệm (Benchmarks)
 
-*Cấu hình kiểm thử: Intel Core i7 (8 Cores / 16 Threads), RAM 16GB, Chế độ suy luận PyTorch CPU.*
+Phần này tổng hợp kết quả đánh giá được tác giả cung cấp cho ba nhóm: **MarianMT gốc của Helsinki-NLP**, **MarianNMT tinh chỉnh trên PhoMT** và **MarianNMT lượng tử hóa INT8**. Các bảng giữ nguyên điểm số, thời gian và tốc độ đã báo cáo; các mức chênh lệch được tính trực tiếp từ những số liệu đó.
 
-| Kịch bản Kiểm thử | Thuật toán | Độ dài đầu vào | Độ trễ trung bình | Tỷ lệ trúng Cache |
-| :--- | :---: | :---: | :---: | :---: |
-| Câu hội thoại ngắn (*"Xin chào"*) | Greedy | 2 từ | **~18 ms** | - |
-| Câu hội thoại ngắn | Beam Search ($k=4$) | 2 từ | **~42 ms** | - |
-| Đoạn văn trung bình (~35 từ) | Greedy | 35 từ | **~85 ms** | - |
-| Đoạn văn trung bình | Beam Search ($k=4$) | 35 từ | **~240 ms** | - |
-| Truy vấn trùng lặp (Cache Hit) | Bất kỳ | Mọi độ dài | **< 0.8 ms** | **100%** |
+**Kết quả nổi bật:** model tinh chỉnh đạt **39.62 SacreBLEU** cho Anh → Việt và **34.88 SacreBLEU** cho Việt → Anh với Beam Search (`beams=4`). Các bản INT8 tương ứng đạt **39.56** và **34.06 SacreBLEU** với cùng tên chiến lược giải mã. Chênh lệch chất lượng cần được đọc cùng điều kiện đánh giá ở bên dưới.
+
+### 7.1. Phạm vi đánh giá và cách đọc chỉ số
+
+| Hạng mục | Nội dung |
+| :--- | :--- |
+| **Chiều dịch** | Anh → Việt (`en2vi`) và Việt → Anh (`vi2en`). |
+| **Tập đánh giá** | Split `test` của PhoMT trong các bảng baseline và model tinh chỉnh. |
+| **Số mẫu** | **19,151 mẫu cho mỗi lần chạy** baseline hoặc model tinh chỉnh; không cộng hai chiều thành số mẫu duy nhất. |
+| **Chiến lược giải mã** | Greedy Search (`num_beams=1`) và Beam Search (`num_beams=4`). |
+| **Chất lượng dịch** | SacreBLEU, tương ứng cột `bleu` trong bảng kết quả; điểm cao hơn tốt hơn theo thước đo này. |
+| **Thời gian** | Tổng thời gian chạy đánh giá, tính bằng giây; thống nhất hai tên cột đầu vào `time_second` và `time_sec` thành **Thời gian (s)**. |
+| **Thông lượng** | Số mẫu xử lý mỗi giây (`speed_samples_per_sec`); giá trị cao hơn tương ứng thông lượng lớn hơn. |
+| **Dữ liệu INT8** | Có điểm SacreBLEU; chưa kèm số mẫu, thời gian, thông lượng và cấu hình chạy chi tiết trong kết quả được cung cấp. |
+
+Thông lượng được xác định theo công thức:
+
+$$
+\text{Thông lượng (mẫu/s)} = \frac{\text{Số mẫu đánh giá}}{\text{Tổng thời gian (s)}}
+$$
+
+Các số trong bảng được làm tròn đến hai chữ số thập phân. **Thông lượng đánh giá theo lô không tương đương độ trễ của một yêu cầu trên giao diện web**; không sử dụng trực tiếp các giá trị này để cam kết thời gian phản hồi của API.
+
+### 7.2. Baseline: MarianMT gốc của Helsinki-NLP
+
+Mỗi hàng dưới đây là một lần chạy trên split `test`, gồm **19,151 mẫu**.
+
+| Model | Chiều dịch | Chiến lược | SacreBLEU ↑ | Thời gian (s) ↓ | Thông lượng (mẫu/s) ↑ |
+| :--- | :---: | :--- | ---: | ---: | ---: |
+| `Helsinki-NLP/opus-mt-en-vi` | Anh → Việt | Greedy Search | 25.94 | 192.82 | 99.32 |
+| `Helsinki-NLP/opus-mt-en-vi` | Anh → Việt | Beam Search (`beams=4`) | **27.35** | 452.44 | 42.33 |
+| `Helsinki-NLP/opus-mt-vi-en` | Việt → Anh | Greedy Search | 28.29 | 159.81 | 119.84 |
+| `Helsinki-NLP/opus-mt-vi-en` | Việt → Anh | Beam Search (`beams=4`) | **29.01** | 367.06 | 52.17 |
+
+Với model gốc, Beam Search tăng **1.41 điểm** ở chiều Anh → Việt và **0.72 điểm** ở chiều Việt → Anh so với Greedy Search. Đổi lại, thời gian đánh giá tăng lần lượt khoảng **2.35 lần** và **2.30 lần** trong các lần đo này.
+
+### 7.3. MarianNMT tinh chỉnh trên PhoMT
+
+Mỗi hàng dưới đây cũng sử dụng split `test`, gồm **19,151 mẫu**.
+
+| Model / nguồn trọng số | Chiều dịch | Chiến lược | SacreBLEU ↑ | Thời gian (s) ↓ | Thông lượng (mẫu/s) ↑ |
+| :--- | :---: | :--- | ---: | ---: | ---: |
+| MarianNMT PhoMT — checkpoint Kaggle¹ | Anh → Việt | Greedy Search | 38.94 | 2629.14 | 7.28 |
+| MarianNMT PhoMT — checkpoint Kaggle¹ | Anh → Việt | Beam Search (`beams=4`) | **39.62** | 16477.38 | 1.16 |
+| `HungNguyen29/MarianNMT-PhoMT_vi2en`² | Việt → Anh | Greedy Search | 34.13 | 165.50 | 115.71 |
+| `HungNguyen29/MarianNMT-PhoMT_vi2en`² | Việt → Anh | Beam Search (`beams=4`) | **34.88** | 353.49 | 54.18 |
+
+¹ Bảng Anh → Việt ban đầu hiển thị rút gọn cột `model` thành `/kaggle/input/notebooks/khnhhngnguynhu/finetun...` và cột `checkpoint` thành `/kaggle/input/models/khnhhngnguynhu/phomt-mari...`. Vì chưa có định danh trọng số đầy đủ trong bảng này, kết quả được ghi theo nguồn Kaggle; không tự gán chúng cho một revision Hugging Face hoặc checkpoint `.pt` cụ thể đang dùng trong ứng dụng.
+
+² Cột `checkpoint` của kết quả Việt → Anh là `hf_base`: trong [notebook đánh giá](notebooks/eval-phomt-mariannmt.ipynb), giá trị này có nghĩa là **dùng trực tiếp trọng số từ repository đã chỉ định, không nạp thêm checkpoint bên ngoài**. Repository được chỉ định ở đây là model đã tinh chỉnh `HungNguyen29/MarianNMT-PhoMT_vi2en`; `hf_base` không có nghĩa là quay về baseline Helsinki-NLP.
+
+**Mức thay đổi so với baseline cùng chiều và chiến lược:**
+
+| Chiều dịch | Chiến lược | Baseline | Sau tinh chỉnh | Δ SacreBLEU |
+| :--- | :--- | ---: | ---: | ---: |
+| Anh → Việt | Greedy Search | 25.94 | 38.94 | **+13.00** |
+| Anh → Việt | Beam Search (`beams=4`) | 27.35 | 39.62 | **+12.27** |
+| Việt → Anh | Greedy Search | 28.29 | 34.13 | **+5.84** |
+| Việt → Anh | Beam Search (`beams=4`) | 29.01 | 34.88 | **+5.87** |
+
+Các kết quả được báo cáo cho thấy điểm số sau tinh chỉnh cao hơn baseline ở cả hai chiều và cả hai chiến lược. Các giá trị Δ là **chênh lệch điểm tuyệt đối**, không phải phần trăm tăng chất lượng dịch. Việc quy mức tăng hoàn toàn cho quá trình tinh chỉnh cần bảo đảm các lần chạy dùng cùng tập tham chiếu và cấu hình chấm điểm.
+
+### 7.4. Ảnh hưởng của lượng tử hóa INT8
+
+Các model INT8 được tích hợp trong ứng dụng:
+
+- Anh → Việt: [`HungNguyen29/MarianNMT-en2vi-ct2-int8`](https://huggingface.co/HungNguyen29/MarianNMT-en2vi-ct2-int8).
+- Việt → Anh: [`HungNguyen29/MarianNMT-vi2en-ct2-int8`](https://huggingface.co/HungNguyen29/MarianNMT-vi2en-ct2-int8).
+
+Trong bảng dưới, **Δ = điểm INT8 − điểm model tinh chỉnh trước lượng tử hóa**. Cặp điểm **33.95 / 34.06** được xác nhận thuộc chiều **Việt → Anh**.
+
+| Chiều dịch | Chiến lược | Trước lượng tử hóa | INT8 | Δ SacreBLEU |
+| :--- | :--- | ---: | ---: | ---: |
+| Anh → Việt | Greedy Search | 38.94 | **39.02** | **+0.08** |
+| Anh → Việt | Beam Search (`beams=4`) | **39.62** | 39.56 | **−0.06** |
+| Việt → Anh | Greedy Search | **34.13** | 33.95 | **−0.18** |
+| Việt → Anh | Beam Search (`beams=4`) | **34.88** | 34.06 | **−0.82** |
+
+Ở chiều Anh → Việt, các điểm INT8 được báo cáo gần với model trước lượng tử hóa: tăng **0.08 điểm** với Greedy và giảm **0.06 điểm** với Beam. Chênh lệch nhỏ này chưa đủ để kết luận INT8 cải thiện chất lượng nếu chưa kiểm tra ý nghĩa thống kê và tính đồng nhất của quy trình đánh giá.
+
+Ở chiều Việt → Anh, mức giảm là **0.18 điểm** với Greedy và **0.82 điểm** với Beam. Beam vẫn cao hơn Greedy trên bản INT8 (**34.06 so với 33.95**), nhưng mức tăng chỉ còn **0.11 điểm**, so với **0.75 điểm** ở bản trước lượng tử hóa.
+
+**Chưa có số đo thời gian, RAM, kích thước model hoặc thông lượng INT8 trong dữ liệu đầu vào.** Vì vậy, phần này chỉ đối chiếu điểm SacreBLEU; chưa đưa ra hệ số tăng tốc hay mức tiết kiệm tài nguyên thực nghiệm của INT8. Để xác định riêng tác động của lượng tử hóa, cần đánh giá hai phiên bản từ cùng checkpoint với cùng dữ liệu và tham số giải mã.
+
+### 7.5. Đánh đổi giữa Greedy Search và Beam Search
+
+| Nhóm model | Chiều dịch | Δ SacreBLEU khi dùng Beam thay Greedy | Thời gian Beam / Greedy |
+| :--- | :--- | ---: | ---: |
+| Helsinki-NLP gốc | Anh → Việt | +1.41 | 2.35× |
+| Helsinki-NLP gốc | Việt → Anh | +0.72 | 2.30× |
+| MarianNMT tinh chỉnh | Anh → Việt | +0.68 | 6.27× |
+| MarianNMT tinh chỉnh | Việt → Anh | +0.75 | 2.14× |
+| MarianNMT INT8 | Anh → Việt | +0.54 | Chưa có số đo |
+| MarianNMT INT8 | Việt → Anh | +0.11 | Chưa có số đo |
+
+Beam Search đạt điểm cao hơn Greedy trong cả sáu cặp kết quả được cung cấp. Riêng model tinh chỉnh Anh → Việt, mức tăng **0.68 điểm** đi kèm tổng thời gian tăng từ **2629.14 s** lên **16477.38 s**; đây là đánh đổi đáng cân nhắc khi chọn cấu hình vận hành. Các tỷ lệ thời gian trên mô tả những lần chạy đã báo cáo, không phải hệ số cố định của thuật toán.
+
+### 7.6. Điều kiện so sánh và khả năng tái lập
+
+Kết quả trên là số liệu thực nghiệm được tác giả cung cấp, **chưa được chạy lại trên toàn bộ tập test trong lần cập nhật tài liệu này**. Những thông tin chưa có trong bảng đầu vào gồm phần cứng thực tế, phiên bản thư viện, revision trọng số, precision của bản trước lượng tử hóa và chữ ký SacreBLEU của từng lần chạy.
+
+[Notebook đánh giá hiện có](notebooks/eval-phomt-mariannmt.ipynb) sử dụng `evaluate.load("sacrebleu")`, cấu hình `batch_size=64`, `max_length=128` ở vòng gọi thí nghiệm và đo thời gian vòng suy luận kèm giải mã/xử lý kết quả. Thời gian này không bao gồm bước nạp model ban đầu và phép tính SacreBLEU sau vòng lặp. Đây là cấu hình tham khảo trong mã nguồn; không tự xem là cấu hình đã được xác nhận cho mọi hàng, đặc biệt là INT8.
+
+Để công bố một phép so sánh có thể tái lập, mỗi lần chạy nên lưu kèm:
+
+- Model/revision và đường dẫn checkpoint đầy đủ; tập test/tham chiếu cùng phiên bản, bảo đảm không trùng dữ liệu huấn luyện.
+- CPU/GPU, RAM/VRAM, số luồng, runtime và phiên bản thư viện; precision hoặc cấu hình lượng tử hóa.
+- Batch size, tokenizer, giới hạn độ dài, số beam, length penalty và các tham số chống lặp/dừng sinh.
+- Phiên bản và chữ ký SacreBLEU, cách chuẩn hóa văn bản; phạm vi bấm giờ, warm-up và số lần đo lặp.
+
+Khi chạy lại notebook, cần truyền `checkpoint_path` tường minh cho từng thí nghiệm và kiểm tra log nạp trọng số: cấu hình mặc định hiện trỏ đến checkpoint Việt → Anh. Các so sánh chất lượng cần thống nhất dữ liệu và cách chấm; các so sánh tốc độ còn cần thống nhất phần cứng, runtime và cấu hình suy luận.
 
 ---
 
@@ -201,11 +287,22 @@ source venv/bin/activate
 ### Bước 2: Cài đặt Thư viện Phụ thuộc
 ```bash
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-pip install transformers sentencepiece sacremoses fastapi uvicorn pydantic aiofiles
+pip install -r requirements.txt
 ```
 
-### Bước 3: Đặt Checkpoints Mô hình
-Sao chép hai tệp checkpoint đã huấn luyện vào thư mục gốc của dự án:
+### Bước 3: Chuẩn bị Mô hình
+
+Tải hai model INT8 và tokenizer trước khi chạy offline:
+
+```bash
+python download_models.py
+```
+
+Hai repository INT8 không chứa tokenizer; script tải tokenizer từ repository PhoMT tương ứng và kiểm tra từ vựng trước khi nạp. Phiên bản model và tokenizer được cố định trong `vie2eng/config.py`. Tệp tải được lưu trong `models/` (được Git bỏ qua), có thể đổi bằng biến môi trường `VIE2ENG_MODEL_CACHE`. Cần Internet cho lần tải đầu; sau đó dịch văn bản bằng tài nguyên cục bộ.
+
+Nếu cần xác thực Hugging Face, đặt biến môi trường `HF_TOKEN` trong phiên terminal trước khi chạy script. Không ghi token vào mã nguồn hay frontend. Các repository công khai có thể tải không cần token.
+
+Để dùng lựa chọn PhoMT Transformer cũ, sao chép hai tệp checkpoint đã huấn luyện vào thư mục gốc của dự án:
 ```
 Vie2Eng/
 ├── vienv2.pt   # Trọng số mô hình Việt -> Anh
@@ -236,6 +333,7 @@ Sau đó mở trình duyệt và truy cập: **[http://localhost:8000](http://lo
   "text": "Trí tuệ nhân tạo đang thay đổi cách con người làm việc.",
   "source_lang": "auto",
   "target_lang": "en",
+  "model_backend": "marian_ct2",
   "method": "beam",
   "beam_size": 4,
   "max_length": 60
@@ -249,7 +347,7 @@ Sau đó mở trình duyệt và truy cập: **[http://localhost:8000](http://lo
   "detected_lang": "vi",
   "source_lang": "vi",
   "target_lang": "en",
-  "model_name": "vienv2.pt (PhoMT Vi -> En)",
+  "model_name": "HungNguyen29/MarianNMT-vi2en-ct2-int8",
   "latency_ms": 68.42,
   "method": "beam",
   "from_cache": false
@@ -257,6 +355,11 @@ Sau đó mở trình duyệt và truy cập: **[http://localhost:8000](http://lo
 ```
 
 #### Ví dụ Thực thi qua cURL:
+
+`model_backend`: `marian_ct2` (mặc định) hoặc `legacy` (checkpoint `.pt`). `method`: `beam` hoặc `greedy`; `beam_size`: 1–6; `max_length`: 2–128 token. Beam size 1 tương đương Greedy. Bộ đệm phân biệt model, chiều dịch, phương pháp và độ dài tối đa.
+
+Nếu chưa tải được model, API trả HTTP 503 kèm hướng dẫn chuẩn bị model; `/api/health` kiểm tra máy chủ, không kích hoạt tải model.
+
 ```bash
 curl -X POST "http://localhost:8000/api/translate" \
      -H "Content-Type: application/json" \
@@ -271,9 +374,12 @@ curl -X POST "http://localhost:8000/api/translate" \
   "status": "healthy",
   "device": "cpu",
   "models": {
-    "vi_en": "vienv2.pt",
-    "en_vi": "enviv4.pt"
+    "vi_en": "HungNguyen29/MarianNMT-vi2en-ct2-int8",
+    "en_vi": "HungNguyen29/MarianNMT-en2vi-ct2-int8"
   },
+  "default_backend": "marian_ct2",
+  "ct2_device": "cpu",
+  "legacy_models": {"vi_en": "vienv2.pt", "en_vi": "enviv4.pt"},
   "cache_size": 42
 }
 ```
@@ -284,24 +390,51 @@ curl -X POST "http://localhost:8000/api/translate" \
 
 ```
 Vie2Eng/
-├── server.py                   # Backend FastAPI, định nghĩa mạng Transformer & thuật toán giải mã
-├── CODEBASE_DOCUMENTATION.md   # Tài liệu phân tích kiến trúc kỹ thuật toàn diện
-├── README.md                   # Tài liệu hướng dẫn chính của repository
-├── run_translator.bat          # Script tự động hóa khởi chạy trên Windows
-├── .gitignore                  # Cấu hình loại trừ checkpoints và cache nhị phân
+├── server.py                   # Điểm khởi chạy FastAPI/Uvicorn
+├── download_models.py          # Chuẩn bị model INT8 và tokenizer
+├── requirements.txt            # Thư viện chạy ứng dụng
+├── requirements-dev.txt        # Thêm thư viện kiểm thử HTTP
+├── vie2eng/
+│   ├── api.py                  # Tạo ứng dụng, endpoint, phiên bản tài nguyên web
+│   ├── service.py              # Điều phối dịch và chọn model
+│   ├── schemas.py              # Kiểm tra request/response
+│   ├── language.py             # Nhận diện ngôn ngữ
+│   ├── config.py               # Đường dẫn, model và phiên bản tokenizer
+│   ├── cache.py                # LRU cache giới hạn dung lượng, an toàn đa luồng
+│   └── backends/
+│       ├── ct2.py              # Suy luận MarianNMT INT8
+│       ├── legacy.py           # Nạp checkpoint, giải mã Beam/Greedy
+│       └── transformer.py      # Kiến trúc checkpoint PyTorch
 ├── templates/
-│   └── index.html              # Cấu trúc giao diện người dùng Material Design 3
+│   └── index.html
 ├── static/
-│   ├── app.js                  # Điều khiển phía Client: API, Audio STT/TTS, Cache
-│   ├── style.css               # Định kiểu giao diện, Responsive và Dark Theme
-│   ├── logo.png                # Tệp hình ảnh logo thương hiệu
-│   └── favicon.ico             # Biểu tượng tab trình duyệt
-└── notebooks/                  # Bộ notebooks nghiên cứu, huấn luyện và đánh giá mô hình
-    ├── test-phomt-mariannmt.ipynb
-    ├── train_phomt_mt.ipynb
-    ├── train_phomt_mt (1).ipynb
-    └── train_phomt_mt (2).ipynb
+│   ├── app.js                  # Ghép mô-đun và gắn sự kiện giao diện
+│   ├── js/                     # DOM, trạng thái, ngôn ngữ, API, cài đặt, lịch sử, âm thanh
+│   └── style.css
+├── tests/                      # Kiểm thử API, suy luận và trạng thái giao diện
+├── models/                     # Model tải về, không đưa vào Git
+└── notebooks/                  # Huấn luyện và đánh giá mô hình
 ```
+
+Frontend dùng ES modules trực tiếp, không cần bước build. Ngôn ngữ được đồng bộ qua `static/js/languages.js`; thời gian chờ và thứ tự phản hồi API được quản lý trong `static/js/translation.js`. Mỗi lần cập nhật mã JavaScript, trang tự đổi mã phiên bản tài nguyên và yêu cầu trình duyệt kiểm tra lại cache.
+
+### Kiểm thử sau khi sửa mã
+
+```bash
+pip install -r requirements-dev.txt
+python -m unittest discover -s tests -v
+node --experimental-vm-modules tests/test_client.cjs
+```
+
+Kiểm thử giao diện dùng bộ mô phỏng DOM và mô-đun JavaScript của Node.js, không điều khiển trình duyệt thật. Để kiểm tra cả model đã tải và checkpoint cũ trong PowerShell:
+
+```powershell
+$env:HF_HUB_OFFLINE = "1"
+$env:VIE2ENG_TEST_MODELS = "1"
+python -m unittest discover -s tests -v
+```
+
+Xem [tài liệu cấu trúc và luồng xử lý](CODEBASE_DOCUMENTATION.md) để biết nơi chỉnh sửa từng chức năng.
 
 ---
 

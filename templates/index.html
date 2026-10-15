@@ -18,7 +18,7 @@
       <div class="brand-wrapper" id="brandBtn">
         <img src="/static/logo.png" alt="Logo" class="brand-logo-img">
         <div class="brand-title-group">
-          <span class="brand-name"><span class="highlight">Google</span> Dịch</span>
+          <span class="brand-name"><span class="highlight">Vie2</span> Eng</span>
         </div>
       </div>
     </div>
@@ -210,6 +210,7 @@
             </div>
 
             <div class="action-tools-right">
+              <span id="modelBadge" class="latency-badge" title="Mô hình đã dùng">MarianNMT INT8</span>
               <span id="latencyBadge" class="latency-badge">Sẵn sàng</span>
             </div>
           </div>
@@ -248,6 +249,19 @@
       </div>
       <div class="modal-body">
         
+        <div class="setting-row">
+          <div class="setting-label-group">
+            <label class="setting-title" for="settingModel">Mô hình dịch</label>
+            <span class="setting-desc">Tự chọn chiều Việt → Anh hoặc Anh → Việt</span>
+          </div>
+          <div class="setting-control">
+            <select id="settingModel">
+              <option value="marian_ct2">MarianNMT INT8 (mới)</option>
+              <option value="legacy">PhoMT Transformer (.pt)</option>
+            </select>
+          </div>
+        </div>
+
         <div class="setting-row">
           <div class="setting-label-group">
             <span class="setting-title">Thuật toán giải mã</span>
@@ -331,6 +345,6 @@
     <span id="toastMsg">Đã sao chép</span>
   </div>
 
-  <script src="/static/app.js"></script>
+  <script type="module" src="/static/app.js?v=__ASSET_VERSION__"></script>
 </body>
 </html>

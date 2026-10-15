@@ -10,8 +10,15 @@ __pycache__/
 *.safetensors
 *.onnx
 
+# Local training datasets and archives
+datasets/
+datasets.zip
+
 # Environments
 .env
+.env.*
+!.env.example
+models/
 .venv
 env/
 venv/
